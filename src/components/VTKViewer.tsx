@@ -11,53 +11,40 @@ interface VTKViewerProps {
 // Declare vtk on window for TypeScript
 declare global {
   interface Window {
-    vtk: {
-      Rendering: {
-        Misc: {
-          vtkFullScreenRenderWindow: {
-            newInstance: (options: { container: HTMLElement; background: number[] }) => {
-              getRenderer: () => {
-                addActor: (actor: unknown) => void;
-                removeAllActors: () => void;
-                resetCamera: () => void;
-              };
-              getRenderWindow: () => {
-                render: () => void;
-              };
-              delete: () => void;
-            };
-          };
-        };
-        Core: {
-          vtkActor: {
-            newInstance: () => {
-              setMapper: (mapper: unknown) => void;
-              getProperty: () => {
-                setOpacity: (opacity: number) => void;
-                setColor: (r: number, g: number, b: number) => void;
-                setRepresentation: (rep: number) => void;
-              };
-            };
-          };
-          vtkMapper: {
-            newInstance: () => {
-              setInputData: (data: unknown) => void;
-            };
-          };
-        };
-      };
-      IO: {
-        XML: {
-          vtkXMLPolyDataReader: {
-            newInstance: () => {
-              parseAsArrayBuffer: (buffer: ArrayBuffer) => void;
-              getOutputData: (index: number) => unknown;
-            };
-          };
-        };
-      };
-    };
+    vtk: any;
   }
+}
+
+// Parse legacy VTK ASCII file to extract points
+function parseLegacyVTK(text: string): { points: number[]; cells?: number[][] } | null {
+  const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+  
+  let i = 0;
+  // Skip header lines
+  while (i < lines.length && !lines[i].startsWith('POINTS')) {
+    i++;
+  }
+  
+  if (i >= lines.length) return null;
+  
+  // Parse POINTS line: "POINTS n float"
+  const pointsMatch = lines[i].match(/POINTS\s+(\d+)/);
+  if (!pointsMatch) return null;
+  
+  const numPoints = parseInt(pointsMatch[1], 10);
+  i++;
+  
+  const points: number[] = [];
+  while (points.length < numPoints * 3 && i < lines.length) {
+    const line = lines[i];
+    if (line.startsWith('CELLS') || line.startsWith('POLYGONS') || line.startsWith('POINT_DATA')) break;
+    
+    const values = line.split(/\s+/).map(parseFloat).filter(v => !isNaN(v));
+    points.push(...values);
+    i++;
+  }
+  
+  return { points };
 }
 
 export const VTKViewer = ({ fileData, opacity, wireframe, color }: VTKViewerProps) => {
@@ -65,8 +52,8 @@ export const VTKViewer = ({ fileData, opacity, wireframe, color }: VTKViewerProp
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const contextRef = useRef<{
-    fullScreenRenderer: ReturnType<typeof window.vtk.Rendering.Misc.vtkFullScreenRenderWindow.newInstance> | null;
-    actor: ReturnType<typeof window.vtk.Rendering.Core.vtkActor.newInstance> | null;
+    fullScreenRenderer: any;
+    actor: any;
   }>({ fullScreenRenderer: null, actor: null });
 
   // Load VTK.js from CDN
@@ -78,7 +65,6 @@ export const VTKViewer = ({ fileData, opacity, wireframe, color }: VTKViewerProp
       }
 
       try {
-        // Load vtk.js from CDN
         const script = document.createElement("script");
         script.src = "https://unpkg.com/vtk.js@30.4.1/vtk.js";
         script.async = true;
@@ -127,31 +113,79 @@ export const VTKViewer = ({ fileData, opacity, wireframe, color }: VTKViewerProp
       const renderWindow = fullScreenRenderer.getRenderWindow();
 
       renderer.removeAllActors();
+      setError(null);
 
-      const reader = window.vtk.IO.XML.vtkXMLPolyDataReader.newInstance();
-      reader.parseAsArrayBuffer(fileData);
+      try {
+        // Convert to text to check format
+        const textDecoder = new TextDecoder();
+        const text = textDecoder.decode(fileData);
+        const isLegacyFormat = text.trim().startsWith('# vtk');
+        const isXMLFormat = text.trim().startsWith('<?xml') || text.trim().startsWith('<VTK');
 
-      const polyData = reader.getOutputData(0);
+        let polyData = null;
 
-      if (!polyData) {
-        setError("Failed to parse VTK file. Make sure it's a valid .vtp file.");
-        return;
+        if (isXMLFormat) {
+          // Use XML reader for .vtp files
+          const reader = window.vtk.IO.XML.vtkXMLPolyDataReader.newInstance();
+          reader.parseAsArrayBuffer(fileData);
+          polyData = reader.getOutputData(0);
+        } else if (isLegacyFormat) {
+          // Parse legacy VTK format manually and create point cloud
+          const parsed = parseLegacyVTK(text);
+          
+          if (!parsed || parsed.points.length === 0) {
+            setError("Failed to parse legacy VTK file. No points found.");
+            return;
+          }
+
+          // Create a polydata with just points (point cloud visualization)
+          polyData = window.vtk.Common.DataModel.vtkPolyData.newInstance();
+          
+          const points = window.vtk.Common.Core.vtkPoints.newInstance();
+          const pointsArray = new Float32Array(parsed.points);
+          points.setData(pointsArray, 3);
+          polyData.setPoints(points);
+
+          // Create vertex cells for point cloud visualization
+          const numPoints = parsed.points.length / 3;
+          const verts = new Uint32Array(numPoints * 2);
+          for (let j = 0; j < numPoints; j++) {
+            verts[j * 2] = 1;
+            verts[j * 2 + 1] = j;
+          }
+          
+          const cellArray = window.vtk.Common.Core.vtkCellArray.newInstance();
+          cellArray.setData(verts);
+          polyData.setVerts(cellArray);
+        } else {
+          setError("Unsupported file format. Please use .vtk (legacy) or .vtp (XML) files.");
+          return;
+        }
+
+        if (!polyData) {
+          setError("Failed to parse VTK file.");
+          return;
+        }
+
+        const mapper = window.vtk.Rendering.Core.vtkMapper.newInstance();
+        mapper.setInputData(polyData);
+
+        const actor = window.vtk.Rendering.Core.vtkActor.newInstance();
+        actor.setMapper(mapper);
+        actor.getProperty().setOpacity(opacity);
+        actor.getProperty().setColor(...color);
+        actor.getProperty().setRepresentation(wireframe ? 1 : 2);
+        actor.getProperty().setPointSize(3);
+
+        contextRef.current.actor = actor;
+
+        renderer.addActor(actor);
+        renderer.resetCamera();
+        renderWindow.render();
+      } catch (err) {
+        console.error("Error loading VTK file:", err);
+        setError("Error loading VTK file. Check console for details.");
       }
-
-      const mapper = window.vtk.Rendering.Core.vtkMapper.newInstance();
-      mapper.setInputData(polyData);
-
-      const actor = window.vtk.Rendering.Core.vtkActor.newInstance();
-      actor.setMapper(mapper);
-      actor.getProperty().setOpacity(opacity);
-      actor.getProperty().setColor(...color);
-      actor.getProperty().setRepresentation(wireframe ? 1 : 2);
-
-      contextRef.current.actor = actor;
-
-      renderer.addActor(actor);
-      renderer.resetCamera();
-      renderWindow.render();
     }
   }, [isLoading, fileData]);
 
@@ -171,7 +205,7 @@ export const VTKViewer = ({ fileData, opacity, wireframe, color }: VTKViewerProp
   if (error) {
     return (
       <div className="w-full h-full min-h-[500px] rounded-lg overflow-hidden bg-destructive/10 flex items-center justify-center">
-        <p className="text-destructive">{error}</p>
+        <p className="text-destructive text-center px-4">{error}</p>
       </div>
     );
   }
