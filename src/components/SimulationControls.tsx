@@ -1,101 +1,127 @@
 import { Slider } from "@/components/ui/slider";
-import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Settings2, Palette, Eye } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Settings2, Palette, Circle } from "lucide-react";
 
 interface SimulationControlsProps {
-  opacity: number;
-  wireframe: boolean;
-  color: [number, number, number];
-  onOpacityChange: (value: number) => void;
-  onWireframeChange: (value: boolean) => void;
-  onColorChange: (value: [number, number, number]) => void;
+  pointSize: number;
+  colorField: string;
+  colorMap: string;
+  availableFields: string[];
+  onPointSizeChange: (value: number) => void;
+  onColorFieldChange: (value: string) => void;
+  onColorMapChange: (value: string) => void;
 }
 
-const colorPresets: { name: string; value: [number, number, number] }[] = [
-  { name: "Blue", value: [0.2, 0.4, 0.8] },
-  { name: "Red", value: [0.8, 0.2, 0.2] },
-  { name: "Green", value: [0.2, 0.7, 0.3] },
-  { name: "Gold", value: [0.9, 0.7, 0.2] },
-  { name: "Cyan", value: [0.2, 0.8, 0.8] },
-  { name: "Purple", value: [0.6, 0.2, 0.8] },
+const colorMaps = [
+  { value: "rainbow", label: "Rainbow" },
+  { value: "coolwarm", label: "Cool-Warm" },
+  { value: "viridis", label: "Viridis" },
+  { value: "plasma", label: "Plasma" },
 ];
 
 export const SimulationControls = ({
-  opacity,
-  wireframe,
-  color,
-  onOpacityChange,
-  onWireframeChange,
-  onColorChange,
+  pointSize,
+  colorField,
+  colorMap,
+  availableFields,
+  onPointSizeChange,
+  onColorFieldChange,
+  onColorMapChange,
 }: SimulationControlsProps) => {
   return (
     <Card className="bg-card border-border">
       <CardHeader className="pb-4">
         <CardTitle className="flex items-center gap-2 text-foreground">
           <Settings2 className="w-5 h-5" />
-          Simulation Parameters
+          Visualization Settings
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Opacity Control */}
+        {/* Point Size Control */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <Label className="flex items-center gap-2 text-sm font-medium">
-              <Eye className="w-4 h-4" />
-              Opacity
+              <Circle className="w-4 h-4" />
+              Ball Size
             </Label>
-            <span className="text-sm text-muted-foreground">{Math.round(opacity * 100)}%</span>
+            <span className="text-sm text-muted-foreground">{pointSize}px</span>
           </div>
           <Slider
-            value={[opacity]}
-            min={0.1}
-            max={1}
-            step={0.05}
-            onValueChange={([val]) => onOpacityChange(val)}
+            value={[pointSize]}
+            min={1}
+            max={20}
+            step={1}
+            onValueChange={([val]) => onPointSizeChange(val)}
             className="w-full"
           />
         </div>
 
-        {/* Wireframe Toggle */}
-        <div className="flex items-center justify-between py-2">
-          <Label htmlFor="wireframe" className="text-sm font-medium cursor-pointer">
-            Wireframe Mode
-          </Label>
-          <Switch
-            id="wireframe"
-            checked={wireframe}
-            onCheckedChange={onWireframeChange}
-          />
-        </div>
-
-        {/* Color Presets */}
-        <div className="space-y-3">
-          <Label className="flex items-center gap-2 text-sm font-medium">
-            <Palette className="w-4 h-4" />
-            Color Preset
-          </Label>
-          <div className="grid grid-cols-3 gap-2">
-            {colorPresets.map((preset) => (
-              <button
-                key={preset.name}
-                onClick={() => onColorChange(preset.value)}
-                className={`px-3 py-2 rounded-md text-xs font-medium transition-all ${
-                  color.toString() === preset.value.toString()
-                    ? "ring-2 ring-primary ring-offset-2 ring-offset-background"
-                    : "hover:bg-accent"
-                }`}
-                style={{
-                  backgroundColor: `rgb(${preset.value[0] * 255}, ${preset.value[1] * 255}, ${preset.value[2] * 255})`,
-                  color: preset.value[0] + preset.value[1] + preset.value[2] > 1.5 ? "#000" : "#fff",
-                }}
-              >
-                {preset.name}
-              </button>
-            ))}
+        {/* Color Field Selection */}
+        {availableFields.length > 0 && (
+          <div className="space-y-3">
+            <Label className="flex items-center gap-2 text-sm font-medium">
+              <Palette className="w-4 h-4" />
+              Color By Field
+            </Label>
+            <Select value={colorField} onValueChange={onColorFieldChange}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select field..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">None (Solid Color)</SelectItem>
+                {availableFields.map((field) => (
+                  <SelectItem key={field} value={field}>
+                    {field}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-        </div>
+        )}
+
+        {/* Color Map Selection */}
+        {colorField !== "none" && availableFields.length > 0 && (
+          <div className="space-y-3">
+            <Label className="text-sm font-medium">Color Map</Label>
+            <Select value={colorMap} onValueChange={onColorMapChange}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {colorMaps.map((cm) => (
+                  <SelectItem key={cm.value} value={cm.value}>
+                    {cm.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
+        {/* Color Map Preview */}
+        {colorField !== "none" && availableFields.length > 0 && (
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Color Scale</Label>
+            <div 
+              className="h-4 rounded-md w-full"
+              style={{
+                background: colorMap === 'rainbow' 
+                  ? 'linear-gradient(to right, blue, cyan, lime, yellow, red)'
+                  : colorMap === 'coolwarm'
+                  ? 'linear-gradient(to right, rgb(59,77,191), rgb(222,222,222), rgb(181,5,38))'
+                  : colorMap === 'viridis'
+                  ? 'linear-gradient(to right, rgb(69,0,84), rgb(72,120,135), rgb(33,169,133), rgb(253,232,36))'
+                  : 'linear-gradient(to right, rgb(13,8,135), rgb(140,23,166), rgb(237,92,77), rgb(240,250,33))'
+              }}
+            />
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>Min</span>
+              <span>Max</span>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
