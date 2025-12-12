@@ -10,7 +10,8 @@ export const FileUploader = ({ onFileLoad }: FileUploaderProps) => {
     (e: React.DragEvent<HTMLDivElement>) => {
       e.preventDefault();
       const file = e.dataTransfer.files[0];
-      if (file && (file.name.endsWith(".vtp") || file.name.endsWith(".vtk"))) {
+      const validExtensions = [".vtp", ".vtk", ".vtu"];
+      if (file && validExtensions.some(ext => file.name.toLowerCase().endsWith(ext))) {
         const reader = new FileReader();
         reader.onload = () => {
           onFileLoad(reader.result as ArrayBuffer, file.name);
@@ -43,7 +44,7 @@ export const FileUploader = ({ onFileLoad }: FileUploaderProps) => {
     >
       <input
         type="file"
-        accept=".vtp,.vtk"
+        accept=".vtp,.vtk,.vtu"
         onChange={handleFileSelect}
         className="hidden"
         id="vtk-file-input"
@@ -54,11 +55,11 @@ export const FileUploader = ({ onFileLoad }: FileUploaderProps) => {
         </div>
         <div>
           <p className="text-lg font-semibold text-foreground">Drop VTK file here</p>
-          <p className="text-sm text-muted-foreground mt-1">or click to browse (.vtp, .vtk)</p>
+          <p className="text-sm text-muted-foreground mt-1">or click to browse (.vtk, .vtp)</p>
         </div>
         <div className="flex items-center gap-2 text-muted-foreground">
           <FileType className="w-4 h-4" />
-          <span className="text-xs">Supports VTK XML PolyData format</span>
+          <span className="text-xs">Supports legacy VTK and XML formats</span>
         </div>
       </label>
     </div>
