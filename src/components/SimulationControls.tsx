@@ -12,6 +12,9 @@ interface SimulationControlsProps {
   onPointSizeChange: (value: number) => void;
   onColorFieldChange: (value: string) => void;
   onColorMapChange: (value: string) => void;
+  spacingScale: number;
+  onSpacingScaleChange: (value: number) => void;
+  
 }
 
 const colorMaps = [
@@ -29,6 +32,8 @@ export const SimulationControls = ({
   onPointSizeChange,
   onColorFieldChange,
   onColorMapChange,
+  spacingScale,
+  onSpacingScaleChange,
 }: SimulationControlsProps) => {
   return (
     <Card className="bg-card border-border">
@@ -54,6 +59,25 @@ export const SimulationControls = ({
             max={20}
             step={1}
             onValueChange={([val]) => onPointSizeChange(val)}
+            className="w-full"
+          />
+        </div>
+
+        {/* Spacing Scale Control */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <Label className="flex items-center gap-2 text-sm font-medium">
+              <Circle className="w-4 h-4" />
+              Spacing
+            </Label>
+            <span className="text-sm text-muted-foreground">{spacingScale.toFixed(2)}x</span>
+          </div>
+          <Slider
+            value={[spacingScale]}
+            min={0.1}
+            max={2}
+            step={0.1}
+            onValueChange={([val]) => onSpacingScaleChange(val)}
             className="w-full"
           />
         </div>

@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { VTKViewer } from "@/components/VTKViewer";
+import { VTKViewer, VTKViewerHandle } from "@/components/VTKViewer";
 import { FolderUploader } from "@/components/FolderUploader";
 import { AnimationControls } from "@/components/AnimationControls";
 import { SimulationControls } from "@/components/SimulationControls";
 import { Boxes, FolderOpen } from "lucide-react";
+
+
 
 interface LoadedFile {
   name: string;
@@ -13,21 +15,23 @@ interface LoadedFile {
 function parseFieldsFromVTK(data: ArrayBuffer): string[] {
   const text = new TextDecoder().decode(data);
   const fields: string[] = [];
-  const lines = text.split('\n');
-  
+  const lines = text.split("\n");
+
   for (const line of lines) {
-    if (line.startsWith('SCALARS') || line.startsWith('VECTORS')) {
+    if (line.startsWith("SCALARS") || line.startsWith("VECTORS")) {
       const parts = line.split(/\s+/);
       if (parts[1]) {
         fields.push(parts[1]);
       }
     }
   }
-  
+
   return fields;
 }
 
 const Index = () => {
+  const [spacingScale, setSpacingScale] = useState(1);
+  const viewerRef = useRef<VTKViewerHandle | null>(null);
   const [files, setFiles] = useState<LoadedFile[]>([]);
   const [currentFrame, setCurrentFrame] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -36,15 +40,19 @@ const Index = () => {
   const [colorField, setColorField] = useState("none");
   const [colorMap, setColorMap] = useState("rainbow");
   const [availableFields, setAvailableFields] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
   const animationRef = useRef<number | null>(null);
   const lastFrameTime = useRef<number>(0);
 
   const handleFilesLoad = useCallback((loadedFiles: LoadedFile[]) => {
+    // files finished loading → hide spinner
+    setIsLoading(false);
+
     setFiles(loadedFiles);
     setCurrentFrame(0);
     setIsPlaying(false);
-    
-    // Parse fields from first file
+
     if (loadedFiles.length > 0) {
       const fields = parseFieldsFromVTK(loadedFiles[0].data);
       setAvailableFields(fields);
@@ -55,7 +63,7 @@ const Index = () => {
   }, []);
 
   const handlePlayPause = useCallback(() => {
-    setIsPlaying(prev => !prev);
+    setIsPlaying((prev) => !prev);
   }, []);
 
   useEffect(() => {
@@ -72,10 +80,10 @@ const Index = () => {
       const frameInterval = 1000 / fps;
 
       if (elapsed >= frameInterval) {
-        setCurrentFrame(prev => {
+        setCurrentFrame((prev) => {
           const next = prev + 1;
           if (next >= files.length) {
-            return 0; // Loop
+            return 0; // loop
           }
           return next;
         });
@@ -94,26 +102,32 @@ const Index = () => {
     };
   }, [isPlaying, fps, files.length]);
 
-  const frames = files.map(f => f.data);
+  const frames = files.map((f) => f.data);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-black text-white">
       {/* Header */}
-      <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-10">
+      <header className="border-b border-neutral-800 bg-neutral-900 sticky top-0 z-10">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-primary/10">
               <Boxes className="w-6 h-6 text-primary" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-foreground">VTK Simulation Viewer</h1>
-              <p className="text-xs text-muted-foreground">Interactive 3D visualization with animation</p>
+              <h1 className="text-xl font-bold text-white">
+                VTK Simulation Viewer
+              </h1>
+              <p className="text-xs text-muted-foreground">
+                Interactive 3D visualization with animation
+              </p>
             </div>
           </div>
           {files.length > 0 && (
             <div className="flex items-center gap-2 px-3 py-1.5 bg-accent rounded-full">
               <FolderOpen className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm font-medium text-foreground">{files.length} files loaded</span>
+              <span className="text-sm font-medium text-foreground">
+                {files.length} files loaded
+              </span>
             </div>
           )}
         </div>
@@ -126,39 +140,64 @@ const Index = () => {
             {files.length === 0 ? (
               <div className="min-h-[500px] flex items-center justify-center">
                 <div className="w-full max-w-md">
-                  <FolderUploader onFilesLoad={handleFilesLoad} />
+                  <FolderUploader
+                    onFilesLoad={handleFilesLoad}
+                    
+                  />
                 </div>
               </div>
             ) : (
               <>
                 <div className="relative bg-card rounded-xl border border-border overflow-hidden shadow-lg">
                   <VTKViewer
+                    ref={viewerRef}
                     frames={frames}
                     currentFrame={currentFrame}
                     pointSize={pointSize}
                     colorField={colorField}
                     colorMap={colorMap}
+                    spacingScale={spacingScale}
                   />
-                  
+
+                  {/* Loading overlay */}
+                  {isLoading && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm z-10">
+                      <div className="flex flex-col items-center gap-3">
+                        <div className="w-12 h-12 border-4 border-slate-700 border-t-sky-400 rounded-full animate-spin" />
+                        <p className="text-sm text-foreground/80">
+                          Loading simulation frames…
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Current file indicator */}
                   <div className="absolute top-4 left-4 px-3 py-1.5 bg-background/80 backdrop-blur-sm rounded-lg border border-border">
                     <span className="text-xs font-medium text-foreground">
                       {files[currentFrame]?.name}
                     </span>
                   </div>
-                  
-                  <div className="absolute bottom-4 left-4">
-                    <button
-                      onClick={() => {
-                        setFiles([]);
-                        setAvailableFields([]);
-                        setColorField("none");
-                      }}
-                      className="px-4 py-2 bg-background/80 backdrop-blur-sm text-foreground text-sm font-medium rounded-lg border border-border hover:bg-accent transition-colors"
-                    >
-                      Load New Folder
-                    </button>
-                  </div>
+
+<div className="absolute bottom-4 left-4 flex gap-3">
+  <button
+    onClick={() => {
+      setFiles([]);
+      setAvailableFields([]);
+      setColorField("none");
+    }}
+    className="px-4 py-2 bg-background/80 backdrop-blur-sm text-foreground text-sm font-medium rounded-lg border border-border hover:bg-accent transition-colors"
+  >
+    Load New Folder
+  </button>
+
+  <button
+    onClick={() => viewerRef.current?.exportImage()}
+    className="px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors"
+  >
+    Export PNG
+  </button>
+</div>
+
                 </div>
 
                 {/* Animation Controls */}
@@ -185,12 +224,14 @@ const Index = () => {
               onPointSizeChange={setPointSize}
               onColorFieldChange={setColorField}
               onColorMapChange={setColorMap}
+              spacingScale={spacingScale}
+              onSpacingScaleChange={setSpacingScale}
             />
 
             {/* Instructions Card */}
-            <div className="p-4 rounded-xl bg-accent/50 border border-border">
-              <h3 className="font-semibold text-foreground mb-2">Controls</h3>
-              <ul className="text-sm text-muted-foreground space-y-1">
+            <div className="p-4 rounded-xl bg-neutral-900 border border-neutral-700">
+              <h3 className="font-semibold text-white mb-2">Controls</h3>
+              <ul className="text-sm text-neutral-300 space-y-1">
                 <li>• Left click + drag to rotate</li>
                 <li>• Scroll to zoom in/out</li>
                 <li>• Right click + drag to pan</li>
