@@ -1,73 +1,100 @@
-# Welcome to your Lovable project
+# Simulate It Easy
 
-## Project info
+## Project Overview
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+This repository contains a modern web application built for interactive simulation and visualization. The project is set up for local development as well as collaborative work using GitHub.
 
-## How can I edit this code?
+---
 
-There are several ways of editing your application.
+## Getting Started
 
-**Use Lovable**
+You can work on this project in multiple ways depending on your preference.
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+### Option 1: Work Locally Using Your IDE
 
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+To run the project on your local machine, make sure you have **Node.js** and **npm** installed. Using **nvm** is recommended for managing Node versions.
 
 Follow these steps:
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
+# Step 1: Clone the repository
 git clone <YOUR_GIT_URL>
 
-# Step 2: Navigate to the project directory.
+# Step 2: Navigate into the project directory
 cd <YOUR_PROJECT_NAME>
 
-# Step 3: Install the necessary dependencies.
-npm i
+# Step 3: Install dependencies
+npm install
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Step 4: Start the development server
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+The app will start with hot-reloading enabled for a smooth development experience.
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+---
 
-**Use GitHub Codespaces**
+### Option 2: Edit Directly on GitHub
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+You can make quick edits directly from GitHub:
 
-## What technologies are used for this project?
+* Open the file you want to edit
+* Click the **Edit** (pencil) icon
+* Commit your changes
 
-This project is built with:
+This is useful for small fixes or documentation updates.
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+---
 
-## How can I deploy this project?
+### Option 3: Use GitHub Codespaces
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+For a full cloud-based development environment:
 
-## Can I connect a custom domain to my Lovable project?
+* Go to the repository’s main page
+* Click **Code** → **Codespaces**
+* Select **New codespace**
+* Edit, commit, and push your changes directly from the browser
 
-Yes, you can!
+---
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## Tech Stack
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+This project is built using:
+
+* **Vite** – fast build tool and dev server
+* **React** – UI library
+* **TypeScript** – type-safe JavaScript
+* **Tailwind CSS** – utility-first styling
+* **shadcn/ui** – reusable UI components
+
+---
+
+## Deployment
+
+You can deploy this project using any modern frontend hosting platform that supports Vite/React builds (for example: Vercel, Netlify, or Cloudflare Pages).
+
+Typical production build command:
+
+```sh
+npm run build
+```
+
+The generated output can be served as a static site.
+
+---
+
+## Custom Domain
+
+If you deploy this project to a hosting provider, you can attach a custom domain using that provider’s domain settings.
+
+---
+
+## Contributing
+
+Feel free to fork the repository, create a new branch, and submit a pull request with your improvements or fixes.
+
+---
+
+## License
+
+Add your license information here.
